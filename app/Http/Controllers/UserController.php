@@ -12,28 +12,49 @@ class UserController extends Controller
      */
     public function index(Request $request)
     {
-        $request->headers->set('Accept', 'application/json');
+        try {
+            $request->headers->set('Accept', 'application/json');
 
-        $query = User::query();
+            $query = User::query();
 
-        if ($request->has('name')) {
-            $query->where('name', 'LIKE', '%' . $request->name . '%');
+            if ($request->has('name')) {
+                $query->where('name', 'LIKE', '%' . $request->name . '%');
+            }
+
+            if ($request->has('email')) {
+                $query->where('email', $request->email);
+            }
+
+            if ($request->has('phone')) {
+                $query->where('phone', $request->phone);
+            }
+
+            // por fecha de creación -->rango (mejorar)
+            // api/users?created_at_from=2025-02-28&created_at_to=2025-03-02
+
+            if ($request->has('created_at_from')) {
+                $query->whereDate('created_at', '>=', $request->created_at_from);
+            }
+
+            if ($request->has('created_at_to')) {
+                $query->whereDate('created_at', '<=', $request->created_at_to);
+            }
+            
+            $users = $query->with(['activities'])->paginate(20);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Usuarios encontrados exitosamente',
+                'data' => $users
+            ], 200); 
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener usuarios',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        if ($request->has('email')) {
-            $query->where('email', $request->email);
-        }
-
-        if ($request->has('phone')) {
-            $query->where('phone', $request->phone);
-        }
-        
-        $users = $query->with(['activities'])->get();
-
-        return response()->json([
-            'message' => 'Usuarios encontrados exitosamente',
-            'users' => $users
-        ], 201); 
     }
 
     /**
@@ -41,7 +62,10 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        //Utilizar el endpoint de register asi sea dentro del admin
+        return response()->json([
+            'success' => false,
+            'message' => 'Utilizar el endpoint de register para registrar usuarios'
+        ], 400);
     }
 
     /**
@@ -49,7 +73,19 @@ class UserController extends Controller
      */
     public function show(User $user)
     {
-        return response()->json($user);
+        try {
+            return response()->json([
+                'success' => true,
+                'message' => 'Usuario encontrado exitosamente',
+                'data' => $user
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener el usuario',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
@@ -57,24 +93,37 @@ class UserController extends Controller
      */
     public function update(Request $request, User $user)
     {
-        $request->validate([
-            'name' => 'nullable|string|max:255',
-            'email' => 'nullable|string|email|max:255|unique:users,email,' . $user->id,
-            'phone' => 'nullable|string',
-            'password' => 'nullable|string|min:6'
-        ]);
+        try {
+            $request->validate([
+                'name' => 'nullable|string|max:255',
+                'email' => 'nullable|string|email|max:255|unique:users,email,' . $user->id,
+                'phone' => 'nullable|string',
+                'password' => 'nullable|string|min:6'
+            ]);
 
-        $data = $request->only(['name', 'email', 'phone', 'password']);
+            $data = $request->only(['name', 'email', 'phone', 'password']);
 
-        if ($request->filled('password')) {
-            $data['password'] = Hash::make($request->password);
-        } else {
-            unset($data['password']);
+            if ($request->filled('password')) {
+                $data['password'] = Hash::make($request->password);
+            } else {
+                unset($data['password']);
+            }
+
+            $user->update($data);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Usuario actualizado',
+                'data' => $user
+            ], 200); 
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar el usuario',
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        $user->update($data);
-
-        return response()->json(['message' => 'Usuario actualizado', 'user' => $user]);
     }
 
     /**
@@ -82,7 +131,18 @@ class UserController extends Controller
      */
     public function destroy(User $user)
     {
-        $user->delete();
-        return response()->json(['message' => 'Usuario eliminado']);
+        try {
+            $user->delete();
+            return response()->json([
+                'success' => true,
+                'message' => 'Usuario eliminado'
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar el usuario',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 }
