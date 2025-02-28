@@ -9,6 +9,8 @@ use Illuminate\Notifications\Notifiable;
 //Implementación de JWT
 use Tymon\JWTAuth\Contracts\JWTSubject;
 
+use App\Models\Activity;
+
 class User extends Authenticatable implements JWTSubject
 {
     /** @use HasFactory<\Database\Factories\UserFactory> */

@@ -7,6 +7,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',
+        api: __DIR__.'/../routes/api.php', // Added
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
     )
@@ -14,5 +15,12 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        //Added, para configurar las respuestas de la api a JSON
+        $exceptions->renderable(function (Throwable $e, $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => $e->getMessage()
+                ], 500);
+            }
+        });
     })->create();
